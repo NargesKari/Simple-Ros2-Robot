@@ -31,6 +31,7 @@ setup(
             'odometry_publisher_node = robot_estimation.odometry_publisher_node:main',
             'lowpass_imu_node = robot_estimation.lowpass_imu_node:main',
             'complementary_filter_node = robot_estimation.complementary_filter_node:main',
+            'wheel_rpm_publisher = robot_estimation.wheel_rpm_publisher:main',
         ],
     },
 )
