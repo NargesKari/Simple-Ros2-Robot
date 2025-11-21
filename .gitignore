@@ -1,0 +1,17 @@
+# ROS2 build files
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+
+# VSCode
+.vscode/
+
+# Large files
+*.bag
+*.zip
+*.tar
+*.jpg
+*.png
