@@ -1,120 +1,28 @@
+# Simple-Ros2-Robot
 
----
+A differential-drive robot simulated in Gazebo with a ROS 2 pose-estimation pipeline: IMU low-pass filtering, bias correction, complementary-filter orientation, and wheel-odometry fused into a live `odom -> base_link` transform.
 
-# 🤖 **Differential Drive Mobile Robot – ROS 2 Simulation & Estimation**
+## What it does
 
-این ریپو شامل شبیه‌سازی کامل یک **ربات متحرک دیفرانسیلی** در محیط **Ignition/Gazebo** به همراه پیاده‌سازی سیستم **تخمین موقعیت و جهت‌گیری (Pose / Orientation Estimation)** بر پایه‌ی داده‌های **IMU** و **مدل حرکتی اودومتری** در **ROS 2** است.
+- URDF/Xacro model of a differential-drive robot (cylindrical base, continuous-joint wheels, 2D LiDAR, IMU) simulated in Gazebo via `ros_gz_bridge`.
+- `lowpass_imu_node` filters raw IMU noise and applies bias correction before anything downstream consumes it.
+- `complementary_filter_node` fuses the filtered IMU into an orientation estimate.
+- `motion_controller_node` converts `/cmd_vel` into left/right wheel RPM commands.
+- `odometry_publisher_node` turns wheel motion into odometry and broadcasts the `odom -> base_link` TF.
+- `frame_id_converter` standardizes the simulated LiDAR's frame ID/topic to match ROS 2 conventions.
 
----
+## Tech stack
 
-## ⚙️ ۱. ساختار مکانیکی (Robot Kinematics)
+ROS 2 (`rclpy`), Gazebo (`ros_gz_bridge`), URDF/Xacro, RViz.
 
-ربات بر اساس ساختار **دوچرخ محرک (Differential Drive)** و بدنه‌ی **استوانه‌ای** مدل‌سازی شده است.
-
-### 🔹 مدل‌سازی مکانیکی — `URDF / XACRO`
-
-فایل URDF شامل لینک‌ها، جرم، اینرسی و مفصل‌های چرخ‌هاست:
-
-| جزء | شکل هندسی | ارتفاع/ضخامت | شعاع |
-| :--- | :--- | :--- | :--- |
-| `base_link` (بدنه اصلی) | استوانه | 0.1 | 0.3 |
-| چرخ‌های محرک | استوانه | 0.1 | 0.1 |
-| سنسور Lidar | استوانه | N/A | 0.1 |
-| سنسور IMU | جعبه | 0.02 | 0.05 (طول × عرض) |
-
-**نکات مهم در مدل‌سازی:**
-- مفاصل چرخ‌ها از نوع `continuous`
-- رعایت نام‌گذاری استاندارد ROS 2 برای فریم‌ها:  
-  `base_link`, `left_wheel_link`, `right_wheel_link`, …
-
-### 🔹 نمایش مدل در RViz
-
-```bash
-ros2 launch robot_description display.launch.py
-````
-
-* فریم اصلی (`Global Frame`) روی **`base_link`** تنظیم شده است.
-
----
-
-## 📡 ۲. سنسورها و شبیه‌سازی (Simulation Setup)
-
-سنسورهای موردنیاز ناوبری افزوده شده و پلاگین‌های Gazebo برای تولید داده فعال شده‌اند.
-
-### 🔹 حسگرهای اضافه‌شده در URDF
-
-* **Lidar 2D →** نقشه‌برداری و تعیین موقعیت نسبی
-* **IMU →** جهت‌گیری و سرعت زاویه‌ای
-* **پلاگین‌ها →**
-  `libignition-gazebo-imu-system`, `gpu_lidar`, …
-
-### 🔹 نود تبدیل فریم (Frame Alignment)
-
-برای اصلاح `frame_id` و استانداردسازی خروجی لیدار:
-
-**نود:** `frame_id_converter`
-→ تطبیق با استاندارد ROS 2 و اصلاح Topic / Frame ID
-
-### 🔹 اجرای شبیه‌سازی در Gazebo
-
-```bash
-ros2 launch robot_description gazebo.launch.py
-```
-
-**این فایل شامل:**
-
-* `gazebo-ros-bridge`
-* قرار دادن ربات در محیط (`robot spawn`)
-* اجرای RViz
-* اجرای world پیش‌فرض
-
-### 🔹 فایل پیکربندی RViz
-
-فایل **`gazebo.rviz`** برای نمایش زنده‌ی:
-
-* مدل ربات
-* داده‌های Lidar و IMU
-* فریم TFها
-
----
-
-## 🧭 ۳. تخمین و مدل حرکتی (Estimation & Motion Model)
-
-نودهای اصلی در پکیج `robot_estimation` قرار دارند.
-
-### 🔹 نودهای پیاده‌سازی‌شده
-
-| قابلیت                | توضیح                                         |
-| --------------------- | --------------------------------------------- |
-| Lowpass Filter        | کاهش نویز IMU                                 |
-| Bias Correction       | اصلاح خطای ثابت سنسورها                       |
-| Complementary Filter  | تخمین Orientation → `/estimation/orientation` |
-| Odometry Motion Model | کنترل چرخ‌ها + انتشار TF (`odom → base_link`) |
-
-* ورودی فرمان حرکت: **`cmd_vel`**
-* تبدیل شدن به سرعت چرخ‌ها: `left_wheel_rpm` / `right_wheel_rpm`
-
-### 🔹 لانچ نودهای تخمین
-
-```bash
-ros2 launch robot_estimation estimator.launch.py
-```
-
----
-
-## 🏗️ ۴. ساخت و اجرا (Build & Run)
-
-### 🔹 ساخت پکیج‌ها
+## Getting started
 
 ```bash
 colcon build --packages-select robot_description robot_estimation
 source install/setup.bash
+
+ros2 launch robot_description gazebo.launch.py     # spawn the robot + world + RViz
+ros2 launch robot_estimation estimator.launch.py   # start the filtering/odometry nodes
 ```
 
-### 🔹 اجرای سیستم کامل
-
-```bash
-ros2 launch robot_description gazebo.launch.py
-```
-
----
+`robot_description display.launch.py` shows the model alone in RViz without Gazebo, useful for checking the URDF and TF tree before running the full simulation.
